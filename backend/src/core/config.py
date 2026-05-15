@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_list_delimiter=",")
 
     DATABASE_URL: str = "postgresql+asyncpg://opn_chat:password@localhost/opn_chat"
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -23,6 +23,7 @@ class Settings(BaseSettings):
             "http://localhost:5175",
             "http://localhost:5176",
             "http://localhost:5177",
+            "https://opn-chat-v1-freebuff.vercel.app",
         ]
 
     @field_validator("CORS_ORIGINS", mode="before")
