@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ChatPage from './pages/ChatPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import GoogleCallbackPage from './pages/GoogleCallbackPage';
 import './index.css';
 
 // authService.isAuthenticated() reads localStorage directly — avoids the one-render
@@ -40,6 +41,7 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+          <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
           <Route path="/" element={<Navigate to="/chat" replace />} />
           <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
