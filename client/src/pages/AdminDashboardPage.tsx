@@ -895,8 +895,6 @@ const SettingsPanel = () => {
   );
 };
 
-function settingRow(): React.CSSProperties { return { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }; }
-function settingLabel(): React.CSSProperties { return { color: 'var(--ch-text)', fontSize: 13, fontWeight: 500 }; }
 function inputStyle(): React.CSSProperties {
   return { background: 'var(--ch-input-bg)', border: '1px solid var(--ch-border)', borderRadius: 6, padding: '5px 10px', color: 'var(--ch-text)', fontSize: 13, outline: 'none', width: 80 };
 }

@@ -1,5 +1,5 @@
 import { api } from './api.service';
-import type { AuthResponseDto, AuthUser, GoogleAuthDto } from '../types/auth';
+import type { AuthUser } from '../types/auth';
 
 export const authService = {
   async logout(): Promise<void> {

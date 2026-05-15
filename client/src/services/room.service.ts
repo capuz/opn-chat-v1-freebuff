@@ -37,8 +37,10 @@ export type RoomCreationErrorCode =
   | 'CREATION_DISABLED';
 
 export class RoomCreationError extends Error {
-  constructor(public code: RoomCreationErrorCode) {
+  code: RoomCreationErrorCode;
+  constructor(code: RoomCreationErrorCode) {
     super(code);
+    this.code = code;
     this.name = 'RoomCreationError';
   }
 }

@@ -32,6 +32,7 @@ export interface Message {
   id?: string;
   userId: string;
   userName?: string;
+  senderNickname?: string;
   content: string;
   timestamp: string;
   replyToId?: string;

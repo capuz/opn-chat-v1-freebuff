@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactElement } from 'react';
 import EmojiPicker, { type EmojiClickData, Theme } from 'emoji-picker-react';
 import type { Message } from '../types/auth';
 import type { PrivateMessage, Conversation } from '../types/privateMessage';
@@ -15,7 +15,6 @@ import { useTranslation } from '../i18n/I18nContext';
 import type { SupportedLanguage } from '../i18n/I18nContext';
 import { useMonetization } from '../hooks/useMonetization';
 import { RewardModal } from '../components/RewardModal';
-import { UpgradeModal } from '../components/UpgradeModal';
 import { RoomBoostCard } from '../components/RoomBoostCard';
 import { GlobalAnnouncementBanner } from '../components/GlobalAnnouncementBanner';
 
@@ -106,8 +105,8 @@ const getBadgeLabel = (badge?: string | null, createdAt?: string | null): string
   return null;
 };
 
-const parseInline = (text: string, nextKey: () => number): (string | JSX.Element)[] => {
-  const parts: (string | JSX.Element)[] = [];
+const parseInline = (text: string, nextKey: () => number): (string | ReactElement)[] => {
+  const parts: (string | ReactElement)[] = [];
   const regex = /(\*[^*]+\*|__[^_]+__|_[^_]+_|~[^~]+~|`[^`]+`)/g;
   let last = 0;
   let m: RegExpExecArray | null;
@@ -127,8 +126,8 @@ const parseInline = (text: string, nextKey: () => number): (string | JSX.Element
   return parts;
 };
 
-const parseFormatting = (text: string): (string | JSX.Element)[] => {
-  const result: (string | JSX.Element)[] = [];
+const parseFormatting = (text: string): (string | ReactElement)[] => {
+  const result: (string | ReactElement)[] = [];
   let k = 0;
   const nextKey = () => k++;
   const tripleRegex = /```([\s\S]*?)```/g;
@@ -193,7 +192,7 @@ const LANG_OPTIONS: { value: SupportedLanguage | 'auto'; label: string }[] = [
 const ChatPage = () => {
   const navigate  = useNavigate();
   const { user, isAuthenticated, loading, refreshAuth } = useAuth();
-  const { t, language, locale, timezone, timezoneOffset, autoDetect, hour12, setHour12, setLanguage, formatDate } = useTranslation();
+  const { t, language, timezone, timezoneOffset, autoDetect, hour12, setHour12, setLanguage, formatDate } = useTranslation();
 
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
 
@@ -235,7 +234,6 @@ const ChatPage = () => {
   // ── Monetization ──
   const monetization = useMonetization();
   const [showRewardModal,   setShowRewardModal]   = useState<'room' | 'nickname' | 'boost' | null>(null);
-  const [showUpgradeModal,  setShowUpgradeModal]  = useState(false);
   const [isWatchingAd,      setIsWatchingAd]      = useState(false);
   const [adGrantFailed,     setAdGrantFailed]     = useState(false);
   const [pendingBoostRoomId, setPendingBoostRoomId] = useState<string | null>(null);
@@ -819,7 +817,7 @@ const ChatPage = () => {
   };
 
   const openNicknameModal = () => {
-    setNewNickname(user.nickname ?? '');
+    setNewNickname(user?.nickname ?? '');
     setNicknameError('');
     setShowNicknameModal(true);
   };
@@ -1421,7 +1419,7 @@ const ChatPage = () => {
                         style={{
                           position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                           background: 'var(--ch-bg-3)', border: '1px solid var(--ch-border)',
-                          borderRadius: 4, padding: '1px 6px',
+                          borderRadius: 4,
                           cursor: 'pointer', color: 'var(--ch-text-3)', fontSize: 13, lineHeight: 1, padding: '4px 6px',
                         display: 'flex', alignItems: 'center',
                         }}
