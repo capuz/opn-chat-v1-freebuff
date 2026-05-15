@@ -1,0 +1,7 @@
+services:
+  api:
+    environment:
+      GOOGLE_CLIENT_ID: "866714309795-c50ud6om4stfg2rfpigdn2d9maud1jjp.apps.googleusercontent.com"
+  realtime:
+    environment:
+      GOOGLE_CLIENT_ID: "866714309795-c50ud6om4stfg2rfpigdn2d9maud1jjp.apps.googleusercontent.com"

@@ -1,0 +1,296 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+/* ─── Animatable CSS property for torch glow radius ─────────── */
+@property --glow-size {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 260px;
+}
+
+/* ─── Global variables (used by Login / Dashboard) ──────────── */
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --heading: 'DM Sans', system-ui, sans-serif;
+  --mono: 'DM Mono', ui-monospace, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
+
+  #social .button-icon {
+    filter: invert(1) brightness(2);
+  }
+}
+
+/* ─── Chat Theme — Dark (phosphor night) ───────────────────── */
+[data-theme="dark"] {
+  --ch-bg:          #07070e;
+  --ch-bg-2:        #0d0d1a;
+  --ch-bg-3:        #121220;
+  --ch-hover:       #181830;
+  --ch-border:      rgba(255, 255, 255, 0.05);
+  --ch-border-2:    rgba(255, 255, 255, 0.09);
+  --ch-text:        #d6d6e8;
+  --ch-text-2:      #52526e;
+  --ch-text-3:      #2e2e42;
+  --ch-accent:      #5eead4;
+  --ch-accent-dim:  rgba(94, 234, 212, 0.07);
+  --ch-me:          #5eead4;
+  --ch-header:      #04040c;
+  --ch-input-bg:    #0d0d1a;
+  --ch-online-dot:  #5eead4;
+  --ch-offline-dot: rgba(255, 255, 255, 0.14);
+  --ch-btn-active:  #5eead4;
+  --ch-btn-text:    #07070e;
+  --ch-error:       #f87171;
+  --ch-modal-bg:    #0e0e1c;
+  --ch-glow:        rgba(94, 234, 212, 0.06);
+  --ch-boost-border: rgba(94, 234, 212, 0.35);
+  --ch-boost-bg:    rgba(94, 234, 212, 0.04);
+}
+
+/* ─── Chat Theme — Light (paper minimal) ───────────────────── */
+[data-theme="light"] {
+  --ch-bg:          #f8f8fb;
+  --ch-bg-2:        #ededf2;
+  --ch-bg-3:        #e4e4ec;
+  --ch-hover:       #e8e8f2;
+  --ch-border:      #deded8;
+  --ch-border-2:    #c8c8d2;
+  --ch-text:        #1a1a2e;
+  --ch-text-2:      #5a5a72;
+  --ch-text-3:      #9898b2;
+  --ch-accent:      #4f46e5;
+  --ch-accent-dim:  rgba(79, 70, 229, 0.07);
+  --ch-me:          #4f46e5;
+  --ch-header:      #ffffff;
+  --ch-input-bg:    #ffffff;
+  --ch-online-dot:  #10b981;
+  --ch-offline-dot: #c4c4cc;
+  --ch-btn-active:  #4f46e5;
+  --ch-btn-text:    #ffffff;
+  --ch-error:       #dc2626;
+  --ch-modal-bg:    #ffffff;
+  --ch-glow:        transparent;
+  --ch-boost-border: rgba(79, 70, 229, 0.4);
+  --ch-boost-bg:    rgba(79, 70, 229, 0.04);
+}
+
+/* ─── Cursor phosphor glow (dark only) ─────────────────────── */
+.cursor-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  background: radial-gradient(
+    var(--glow-size, 260px) circle at var(--cx, 50%) var(--cy, 50%),
+    var(--ch-glow),
+    transparent 72%
+  );
+}
+
+[data-theme="dark"] .cursor-glow {
+  animation: torch-flicker 2.8s linear infinite;
+}
+
+@keyframes torch-flicker {
+  0%   { --glow-size: 260px; opacity: 0.85; }
+  4%   { --glow-size: 238px; opacity: 0.66; }
+  9%   { --glow-size: 272px; opacity: 0.92; }
+  15%  { --glow-size: 218px; opacity: 0.52; }
+  21%  { --glow-size: 265px; opacity: 0.88; }
+  27%  { --glow-size: 244px; opacity: 0.70; }
+  33%  { --glow-size: 278px; opacity: 0.94; }
+  39%  { --glow-size: 230px; opacity: 0.58; }
+  45%  { --glow-size: 258px; opacity: 0.82; }
+  51%  { --glow-size: 248px; opacity: 0.74; }
+  57%  { --glow-size: 225px; opacity: 0.56; }
+  63%  { --glow-size: 270px; opacity: 0.90; }
+  69%  { --glow-size: 252px; opacity: 0.78; }
+  75%  { --glow-size: 235px; opacity: 0.62; }
+  81%  { --glow-size: 268px; opacity: 0.88; }
+  87%  { --glow-size: 242px; opacity: 0.68; }
+  93%  { --glow-size: 222px; opacity: 0.54; }
+  100% { --glow-size: 260px; opacity: 0.85; }
+}
+
+/* ─── Online status dot pulse ───────────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+/* ─── Monetization / Banner animations ─────────────────────── */
+@keyframes ticker-scroll {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes glow-pulse-banner {
+  0%, 100% { opacity: 1; text-shadow: 0 0 4px var(--ch-accent), 0 0 10px var(--ch-accent); }
+  50%       { opacity: 0.75; text-shadow: 0 0 8px var(--ch-accent), 0 0 20px var(--ch-accent); }
+}
+
+@keyframes neon-shimmer {
+  0%   { filter: brightness(1); }
+  50%  { filter: brightness(1.4) drop-shadow(0 0 6px var(--ch-accent)); }
+  100% { filter: brightness(1); }
+}
+
+@keyframes ad-progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ch-banner-ticker-inner {
+  display: inline-block;
+  white-space: nowrap;
+  animation: ticker-scroll 22s linear infinite;
+}
+
+.ch-banner-gradient-text {
+  background: linear-gradient(90deg, var(--ch-accent), #a78bfa, var(--ch-accent));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 4s linear infinite;
+}
+
+.ch-boost-badge {
+  animation: glow-pulse-banner 2s ease-in-out infinite;
+}
+
+/* ─── Chat input focus ring ─────────────────────────────────── */
+.ch-input:focus {
+  border-color: var(--ch-accent) !important;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ch-accent-dim);
+}
+
+/* ─── Themed scrollbars ─────────────────────────────────────── */
+[data-theme="dark"] ::-webkit-scrollbar { width: 4px; }
+[data-theme="dark"] ::-webkit-scrollbar-track { background: transparent; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+
+[data-theme="light"] ::-webkit-scrollbar { width: 4px; }
+[data-theme="light"] ::-webkit-scrollbar-track { background: transparent; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+
+/* ─── Text selection ────────────────────────────────────────── */
+[data-theme="dark"] ::selection {
+  background: rgba(94, 234, 212, 0.18);
+  color: #5eead4;
+}
+[data-theme="light"] ::selection {
+  background: rgba(79, 70, 229, 0.14);
+  color: #4f46e5;
+}
+
+/* ─── Root layout ───────────────────────────────────────────── */
+#root {
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  border-inline: 1px solid var(--border);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+body { margin: 0; }
+
+h1, h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) { font-size: 20px; }
+}
+
+p { margin: 0; }
+
+code, .counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}
