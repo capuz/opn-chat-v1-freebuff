@@ -173,7 +173,7 @@ const LoginPage = () => {
       refreshAuth();
       navigate('/chat');
     } catch (err: any) {
-      setError(err.response?.data?.message || t('login.googleError'));
+      setError(err.response?.data?.detail || t('login.googleError'));
     }
   }, []);
 
