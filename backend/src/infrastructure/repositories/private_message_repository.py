@@ -93,6 +93,52 @@ class PrivateMessageRepository(IPrivateMessageRepository):
         )
         await self._s.execute(stmt)
 
+    async def list_conversations(self, user_id: UUID) -> list[dict]:
+        from sqlalchemy import text
+        sql = text("""
+            WITH last_msgs AS (
+                SELECT DISTINCT ON (partner_id)
+                    CASE WHEN sender_id = :uid THEN receiver_id ELSE sender_id END AS partner_id,
+                    content,
+                    timestamp
+                FROM private_messages
+                WHERE (sender_id = :uid OR receiver_id = :uid)
+                  AND is_deleted_for_everyone = false
+                ORDER BY partner_id, timestamp DESC
+            ),
+            unread AS (
+                SELECT sender_id AS partner_id, COUNT(*) AS cnt
+                FROM private_messages
+                WHERE receiver_id = :uid
+                  AND is_read = false
+                  AND is_deleted_for_everyone = false
+                GROUP BY sender_id
+            )
+            SELECT
+                lm.partner_id,
+                u.nickname,
+                u.avatar_url,
+                lm.content,
+                lm.timestamp,
+                COALESCE(ur.cnt, 0) AS unread_count
+            FROM last_msgs lm
+            JOIN users u ON u.id = lm.partner_id
+            LEFT JOIN unread ur ON ur.partner_id = lm.partner_id
+            ORDER BY lm.timestamp DESC
+        """)
+        rows = (await self._s.execute(sql, {"uid": user_id})).fetchall()
+        return [
+            {
+                "userId": str(r.partner_id),
+                "nickname": r.nickname,
+                "avatarUrl": r.avatar_url,
+                "lastMessage": r.content,
+                "lastMessageTime": r.timestamp.isoformat(),
+                "unreadCount": int(r.unread_count),
+            }
+            for r in rows
+        ]
+
     async def update(self, message: PrivateMessage) -> PrivateMessage:
         row = await self._s.get(PrivateMessageModel, message.id)
         if row:

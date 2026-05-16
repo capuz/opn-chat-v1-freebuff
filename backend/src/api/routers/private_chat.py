@@ -40,6 +40,25 @@ def _visible_content(msg: PrivateMessage, viewer_id: UUID) -> str:
     return msg.content
 
 
+class ConversationOut(BaseModel):
+    userId: str
+    nickname: str
+    avatarUrl: str | None
+    lastMessage: str
+    lastMessageTime: str
+    unreadCount: int
+
+
+@router.get("/conversations", response_model=list[ConversationOut])
+async def get_conversations(
+    payload: Annotated[dict, Depends(get_current_user_payload)],
+):
+    user_id = UUID(payload["sub"])
+    async with get_async_session() as db:
+        rows = await PrivateMessageRepository(db).list_conversations(user_id)
+    return rows
+
+
 @router.post("/send", response_model=MessageOut, status_code=status.HTTP_201_CREATED)
 async def send_message(
     body: SendBody,
