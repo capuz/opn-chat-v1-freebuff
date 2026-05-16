@@ -5,7 +5,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.api.routers import admin, auth, private_chat, profile, rooms, settings
+from src.api.routers import admin, auth, private_chat, profile, rooms
+from src.api.routers import settings as settings_router
 from src.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def create_app() -> FastAPI:
     app.include_router(private_chat.router)
     app.include_router(profile.router)
     app.include_router(admin.router)
-    app.include_router(settings.router)
+    app.include_router(settings_router.router)
 
     @app.get("/health", tags=["health"])
     async def health():
