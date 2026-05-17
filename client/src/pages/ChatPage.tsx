@@ -9,13 +9,12 @@ import { authService } from '../services/auth.service';
 import { privateChatService } from '../services/privateChat.service';
 import { roomService } from '../services/room.service';
 import { apiService } from '../services/api.service';
-import { showRewardedAd } from '../services/adsense.service';
 import { chatSounds } from '../utils/chatSounds';
 import { useTranslation } from '../i18n/I18nContext';
 import type { SupportedLanguage } from '../i18n/I18nContext';
-import { useMonetization } from '../hooks/useMonetization';
-import { RewardModal } from '../components/RewardModal';
-import { RoomBoostCard } from '../components/RoomBoostCard';
+import { useNickAdUnlock } from '../hooks/useNickAdUnlock';
+import { useAnnouncementDismiss } from '../hooks/useAnnouncementDismiss';
+import { NickChangeAdModal } from '../components/NickChangeAdModal';
 import { GlobalAnnouncementBanner } from '../components/GlobalAnnouncementBanner';
 
 const api = apiService.getAxiosInstance();
@@ -231,15 +230,10 @@ const ChatPage = () => {
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // ── Monetization ──
-  const monetization = useMonetization();
-  const [showRewardModal,   setShowRewardModal]   = useState<'room' | 'nickname' | 'boost' | null>(null);
-  const [isWatchingAd,      setIsWatchingAd]      = useState(false);
-  const [adGrantFailed,     setAdGrantFailed]     = useState(false);
-  const [adCountdown,       setAdCountdown]       = useState(0);
-  const [pendingBoostRoomId, setPendingBoostRoomId] = useState<string | null>(null);
-  const [hoveredRoom,       setHoveredRoom]       = useState<string | null>(null);
-  const [activeBoost,       setActiveBoost]       = useState<{ roomId: string; expiresAt: number } | null>(null);
+  // ── Nick ad unlock ──
+  const { adUnlockExpiry, onAdWatched } = useNickAdUnlock();
+  const { dismiss: dismissAnnouncement, isDismissed: isAnnouncementDismissed } = useAnnouncementDismiss();
+  const [showNickAdModal,   setShowNickAdModal]   = useState(false);
 
   const [showFlag,      setShowFlag]      = useState(false);
   const [countryCode,   setCountryCode]   = useState('');
@@ -285,18 +279,6 @@ const ChatPage = () => {
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
   useEffect(() => { privatePartnerRef.current = privatePartner; }, [privatePartner]);
 
-  useEffect(() => {
-    if (!isWatchingAd) { setAdCountdown(0); return; }
-    setAdCountdown(15);
-    const id = setInterval(() => {
-      setAdCountdown(prev => {
-        if (prev <= 1) { clearInterval(id); return 0; }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isWatchingAd]);
-
   // ── Auth guard — read from localStorage to avoid context lag after login ──
   useEffect(() => {
     if (!loading && !authService.isAuthenticated()) navigate('/login');
@@ -337,7 +319,6 @@ const ChatPage = () => {
   // ── Announcement banner ──
   useEffect(() => {
     if (!isAuthenticated) return;
-    monetization.resetDismissedAnnouncements();
     api.get<{ message: string }>('/api/settings/announcement')
       .then(r => setAnnouncementMsg(r.data.message))
       .catch(() => {});
@@ -378,17 +359,6 @@ const ChatPage = () => {
           chatSounds.play('messageReceived');
         }
       }
-    });
-    conn.on('room_boosted', ({ room_id, expires_at }: { room_id: string; expires_at: string }) => {
-      const expiresAtMs = new Date(expires_at).getTime();
-      setActiveBoost({ roomId: room_id, expiresAt: expiresAtMs });
-      monetization.boostRoom(room_id);
-    });
-    conn.on('room_boost_expired', (_payload: { room_id: string }) => {
-      setActiveBoost(null);
-    });
-    conn.on('boost_error', (_error: string) => {
-      // servidor rechazó el boost — no hacer nada, el estado local ya no cambió
     });
     const connectAndLoad = async () => {
       try {
@@ -575,10 +545,10 @@ const ChatPage = () => {
 
   const handleNick = async (newNick: string) => {
     if (!newNick.trim()) { injectLocal('Usage: /nick <nickname>'); return; }
-    if (nicknameChangesLeft === 0 && monetization.nickChangesLeftToday === 0) {
+    if (nicknameChangesLeft === 0) {
       chatSounds.play('error');
       injectLocal(t('cmd.nick.noChanges'));
-      setShowRewardModal('nickname');
+      setShowNickAdModal(true);
       return;
     }
     const trimmed = newNick.trim();
@@ -767,23 +737,16 @@ const ChatPage = () => {
         password: newRoomIsPrivate ? newRoomPassword : undefined,
       });
       setRooms(prev => [...prev, { id: r.id, name: r.name, description: r.description || '', createdById: user?.id }]);
-      monetization.grantBoostToken(r.id);
       await switchRoom(r.id);
       setShowCreateRoom(false);
       setNewRoomName(''); setNewRoomDescription('');
       setNewRoomIsPrivate(false); setNewRoomPassword('');
       setCreateRoomError('');
-      // Track free or ad-unlocked slot usage
-      if (monetization.hasActiveRoomSlot) monetization.consumeRoomSlot();
-      else monetization.consumeFreeRoom();
     } catch (err: any) {
       const code = err?.code as string | undefined;
-      if (code === 'ACTIVE_LIMIT' || code === 'DAILY_LIMIT') {
-        setShowCreateRoom(false);
-        setShowRewardModal('room');
-        return;
-      }
       const errorMessages: Record<string, string> = {
+        ACTIVE_LIMIT:       t('chat.tooManyRooms'),
+        DAILY_LIMIT:        t('chat.tooManyRooms'),
         INVALID_NAME:       t('chat.roomNameInvalid'),
         NAME_TAKEN:         t('chat.roomNameTaken'),
         CREATION_DISABLED:  t('chat.tooManyRooms'),
@@ -835,7 +798,7 @@ const ChatPage = () => {
 
   const openNicknameModal = () => {
     if (nicknameChangesLeft === 0) {
-      setShowRewardModal('nickname');
+      setShowNickAdModal(true);
       return;
     }
     setNewNickname(user?.nickname ?? '');
@@ -854,7 +817,6 @@ const ChatPage = () => {
     try {
       const res = await api.put('/api/profile/nickname', { nickname: trimmed });
       setNicknameChangesLeft(res.data.changesLeft ?? 0);
-      monetization.consumeNickChange();
       const stored = localStorage.getItem('user');
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -875,42 +837,6 @@ const ChatPage = () => {
     }
   };
 
-  const handleWatchAd = async () => {
-    setIsWatchingAd(true);
-    setAdGrantFailed(false);
-
-    const granted = await showRewardedAd();
-    if (!granted) {
-      setIsWatchingAd(false);
-      setAdGrantFailed(true);
-      return;
-    }
-
-    if (showRewardModal === 'nickname') {
-      try {
-        const res = await api.post('/api/profile/nick-ad-unlock');
-        monetization.watchAdForNickChange(new Date(res.data.unlockedUntil).getTime());
-      } catch {
-        monetization.watchAdForNickChange(Date.now() + 12 * 60 * 60 * 1000);
-      }
-      setIsWatchingAd(false);
-      setShowRewardModal(null);
-      openNicknameModal();
-    } else if (showRewardModal === 'boost' && pendingBoostRoomId) {
-      const roomId = pendingBoostRoomId;
-      monetization.grantBoostToken(roomId);
-      monetization.consumeBoostToken(roomId);
-      setIsWatchingAd(false);
-      setShowRewardModal(null);
-      setPendingBoostRoomId(null);
-      const conn = getSocket('chat');
-      conn.emit('boost_room', roomId);
-    } else {
-      setIsWatchingAd(false);
-      setShowRewardModal(null);
-    }
-  };
-
   const handleSetLanguage = (lang: SupportedLanguage | 'auto') => {
     setLanguage(lang);
     api.put('/api/profile/preferences', {
@@ -921,12 +847,7 @@ const ChatPage = () => {
 
   if (loading || !isAuthenticated || !user) return null;
 
-  const sortedRooms = useMemo(() =>
-    [...rooms].sort((a, b) =>
-      (activeBoost?.roomId === b.id ? 1 : 0) - (activeBoost?.roomId === a.id ? 1 : 0)
-    ),
-    [rooms, activeBoost] // eslint-disable-line react-hooks/exhaustive-deps
-  );
+  const sortedRooms = useMemo(() => [...rooms], [rooms]);
 
   const partnerNick  = partnerNickname || onlineUsers.find(u => u.id === privatePartner)?.nickname || conversations.find(c => c.userId === privatePartner)?.nickname || privatePartner;
   const deleteMenuMsg = deleteMenu ? privateMessages.find(m => m.id === deleteMenu.msgId) : null;
@@ -1047,8 +968,8 @@ const ChatPage = () => {
           type="event"
           animation="ticker"
           isDark={isDark}
-          onDismiss={() => monetization.dismissAnnouncement(`banner-${announcementMsg.slice(0, 16)}`)}
-          isDismissed={monetization.isAnnouncementDismissed(`banner-${announcementMsg.slice(0, 16)}`)}
+          onDismiss={() => dismissAnnouncement(`banner-${announcementMsg.slice(0, 16)}`)}
+          isDismissed={isAnnouncementDismissed(`banner-${announcementMsg.slice(0, 16)}`)}
           onRoomClick={(roomName) => {
             const found = rooms.find(r => r.name.toLowerCase() === roomName.toLowerCase());
             if (found) switchRoom(found.id);
@@ -1077,7 +998,7 @@ const ChatPage = () => {
               {t('chat.rooms')}
             </span>
             <button
-              onClick={() => monetization.canCreateRoom ? setShowCreateRoom(true) : setShowRewardModal('room')}
+              onClick={() => setShowCreateRoom(true)}
               title={t('chat.newRoom')}
               style={{
                 width: 18, height: 18, borderRadius: 4,
@@ -1091,59 +1012,29 @@ const ChatPage = () => {
 
           <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
             {sortedRooms.map(room => {
-              const active      = chatMode === 'global' && activeRoom === room.id;
-              const boosted     = activeBoost?.roomId === room.id;
-              const isOwner     = room.createdById === user?.id;
-              const globalBoostActive = !!activeBoost && !isAdmin;
+              const active = chatMode === 'global' && activeRoom === room.id;
               return (
-                <div key={room.id}
-                  onMouseEnter={() => setHoveredRoom(room.id)}
-                  onMouseLeave={() => setHoveredRoom(null)}
-                >
+                <div key={room.id}>
                   <button onClick={() => switchRoom(room.id)} style={{
                     width: '100%', textAlign: 'left',
                     padding: '6px 12px',
                     paddingLeft: active ? 10 : 12,
                     border: 'none',
-                    borderLeft: active
-                      ? '2px solid var(--ch-accent)'
-                      : boosted
-                        ? '2px solid var(--ch-boost-border)'
-                        : '2px solid transparent',
+                    borderLeft: active ? '2px solid var(--ch-accent)' : '2px solid transparent',
                     cursor: 'pointer',
-                    background: active
-                      ? 'var(--ch-accent-dim)'
-                      : boosted
-                        ? 'var(--ch-boost-bg)'
-                        : 'transparent',
+                    background: active ? 'var(--ch-accent-dim)' : 'transparent',
                     display: 'flex', alignItems: 'center', gap: 7,
                     color: active ? 'var(--ch-accent)' : 'var(--ch-text-2)',
                     transition: 'background 0.1s ease, color 0.1s ease',
                   }}
-                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = boosted ? 'var(--ch-boost-bg)' : 'var(--ch-hover)'; }}
-                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = boosted ? 'var(--ch-boost-bg)' : 'transparent'; }}
+                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--ch-hover)'; }}
+                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
                   >
                     <IconHash />
                     <span style={{ fontSize: 12, fontWeight: active ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
                       {room.name}
                     </span>
-                    {boosted && (
-                      <span className="ch-boost-badge" style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--ch-accent)', flexShrink: 0 }}>
-                        BOOST
-                      </span>
-                    )}
                   </button>
-                  {hoveredRoom === room.id && (
-                    <RoomBoostCard
-                      roomId={room.id}
-                      isBoosted={boosted}
-                      boostExpiry={activeBoost?.roomId === room.id ? activeBoost.expiresAt : null}
-                      isDark={isDark}
-                      isOwner={isOwner}
-                      globalBoostActive={globalBoostActive}
-                      onBoost={() => { setPendingBoostRoomId(room.id); setShowRewardModal('boost'); }}
-                    />
-                  )}
                 </div>
               );
             })}
@@ -1272,13 +1163,13 @@ const ChatPage = () => {
 
                 {/* ── ADS ICON: visible cuando nicknameChangesLeft === 0 ── */}
                 {nicknameChangesLeft === 0 && (() => {
-                  const inCooldown = monetization.nickAdExpiry !== null && monetization.nickAdExpiry > Date.now();
-                  const cooldownMs = inCooldown && monetization.nickAdExpiry ? monetization.nickAdExpiry - Date.now() : 0;
+                  const inCooldown = adUnlockExpiry !== null && adUnlockExpiry > Date.now();
+                  const cooldownMs = inCooldown && adUnlockExpiry ? adUnlockExpiry - Date.now() : 0;
                   const cooldownH  = Math.floor(cooldownMs / 3_600_000);
                   const cooldownM  = Math.floor((cooldownMs % 3_600_000) / 60_000);
                   return (
                     <button
-                      onClick={inCooldown ? undefined : () => setShowRewardModal('nickname')}
+                      onClick={inCooldown ? undefined : () => setShowNickAdModal(true)}
                       title={inCooldown
                         ? t('monetize.adsIconCooldown', { h: cooldownH, m: cooldownM })
                         : t('monetize.adsIconTitle')}
@@ -1297,58 +1188,6 @@ const ChatPage = () => {
                       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--ch-border-2)'; e.currentTarget.style.color = inCooldown ? 'var(--ch-text-3)' : 'var(--ch-text-2)'; }}
                     >
                       📺
-                    </button>
-                  );
-                })()}
-
-                {/* ── BOOST ICON: visible para el owner del room activo ── */}
-                {activeRoomOwner && (() => {
-                  const isBoosted   = activeBoost?.roomId === activeRoom;
-                  const hasToken    = monetization.hasBoostToken(activeRoom);
-                  const otherBoosted = !!activeBoost && !isBoosted;
-                  const blocked     = otherBoosted && !isAdmin;
-
-                  const minsLeft = isBoosted && activeBoost
-                    ? Math.max(0, Math.ceil((activeBoost.expiresAt - Date.now()) / 60_000))
-                    : 0;
-
-                  const handleBoostClick = () => {
-                    if (blocked || isBoosted) return;
-                    if (hasToken) {
-                      monetization.consumeBoostToken(activeRoom);
-                      getSocket('chat').emit('boost_room', activeRoom);
-                    } else {
-                      setPendingBoostRoomId(activeRoom);
-                      setShowRewardModal('boost');
-                    }
-                  };
-
-                  return (
-                    <button
-                      onClick={handleBoostClick}
-                      disabled={blocked || isBoosted}
-                      title={
-                        isBoosted  ? t('monetize.boostActive', { m: minsLeft }) :
-                        blocked    ? t('monetize.boostBlocked') :
-                        hasToken   ? t('monetize.boostChannelTitle') :
-                                     t('monetize.boostNoToken')
-                      }
-                      style={{
-                        background: 'none',
-                        border: `1px solid ${isBoosted ? 'var(--ch-accent)' : blocked ? 'var(--ch-border)' : 'var(--ch-border-2)'}`,
-                        borderRadius: 6,
-                        cursor: blocked || isBoosted ? 'not-allowed' : 'pointer',
-                        color: isBoosted ? 'var(--ch-accent)' : blocked ? 'var(--ch-text-3)' : 'var(--ch-text-2)',
-                        padding: '4px 7px',
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        fontSize: 11, fontWeight: isBoosted ? 700 : 500,
-                        opacity: blocked ? 0.45 : 1,
-                        transition: 'border-color 0.15s, color 0.15s',
-                      }}
-                      onMouseEnter={e => { if (!blocked && !isBoosted) { e.currentTarget.style.borderColor = 'var(--ch-accent)'; e.currentTarget.style.color = 'var(--ch-accent)'; } }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = isBoosted ? 'var(--ch-accent)' : blocked ? 'var(--ch-border)' : 'var(--ch-border-2)'; e.currentTarget.style.color = isBoosted ? 'var(--ch-accent)' : blocked ? 'var(--ch-text-3)' : 'var(--ch-text-2)'; }}
-                    >
-                      {isBoosted ? `🏆 ${minsLeft}m` : '⚡'}
                     </button>
                   );
                 })()}
@@ -1793,16 +1632,15 @@ const ChatPage = () => {
         </div>
       )}
 
-      {/* ── REWARD MODAL (ad unlock) ── */}
-      {showRewardModal && (
-        <RewardModal
-          type={showRewardModal}
-          isDark={isDark}
-          onWatchAd={handleWatchAd}
-          onClose={() => { setShowRewardModal(null); setAdGrantFailed(false); }}
-          isWatchingAd={isWatchingAd}
-          adFailed={adGrantFailed}
-          adCountdown={adCountdown}
+      {/* ── NICK AD MODAL ── */}
+      {showNickAdModal && (
+        <NickChangeAdModal
+          onClose={() => setShowNickAdModal(false)}
+          onSuccess={(expiryTs) => {
+            onAdWatched(expiryTs);
+            setShowNickAdModal(false);
+            openNicknameModal();
+          }}
         />
       )}
 
@@ -1841,7 +1679,7 @@ const ChatPage = () => {
                   onClick={() => {
                     if (nicknameChangesLeft === 0) {
                       setShowNicknameModal(false);
-                      setShowRewardModal('nickname');
+                      setShowNickAdModal(true);
                     } else {
                       saveNickname();
                     }
@@ -1862,10 +1700,10 @@ const ChatPage = () => {
               {nicknameError && (
                 <p style={{ fontSize: 11, color: 'var(--ch-error)', marginTop: 5 }}>{nicknameError}</p>
               )}
-              <p style={{ fontSize: 10, color: monetization.nickChangesLeftToday === 0 ? 'var(--ch-error)' : 'var(--ch-text-3)', marginTop: 5 }}>
-                {monetization.nickChangesLeftToday === 0
+              <p style={{ fontSize: 10, color: nicknameChangesLeft === 0 ? 'var(--ch-error)' : 'var(--ch-text-3)', marginTop: 5 }}>
+                {nicknameChangesLeft === 0
                   ? t('chat.changesExhausted')
-                  : t('chat.changesLeft', { n: monetization.nickChangesLeftToday, s: monetization.nickChangesLeftToday !== 1 ? 's' : '' })}
+                  : t('chat.changesLeft', { n: nicknameChangesLeft, s: nicknameChangesLeft !== 1 ? 's' : '' })}
               </p>
             </div>
 

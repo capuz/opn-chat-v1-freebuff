@@ -15,7 +15,7 @@ export const authService = {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
-    localStorage.removeItem('opnchat-monetization');
+    localStorage.removeItem('opnchat-nick-ad-expiry');
   },
 
   isAuthenticated(): boolean {
