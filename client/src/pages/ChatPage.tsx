@@ -855,11 +855,9 @@ const ChatPage = () => {
   const onlineCount  = onlineUsers.filter(u => u.isOnline).length;
   const isConnected  = connectionStatus === 'Connected';
   const isDark       = theme === 'dark';
-  const isAdmin      = user?.isAdmin === true;
   const activeRoomData  = rooms.find(r => r.id === activeRoom);
   const activeRoomName  = activeRoomData?.name ?? '—';
   const activeRoomDesc  = activeRoomData?.description ?? '';
-  const activeRoomOwner = activeRoomData?.createdById === user?.id;
 
   // Dot glow in dark mode (online users / my status)
   const dotGlow = isDark ? '0 0 6px var(--ch-online-dot)' : 'none';
