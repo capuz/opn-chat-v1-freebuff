@@ -26,6 +26,7 @@
   "chat.awayHint": "away · {msg} · type /back to return",
   "chat.changesLeft": "{n} change{s} left",
   "chat.changesOf3": "{n} of {max} nickname change{s} remaining today.",
+  "chat.changesExhausted": "Daily quota used · Resets tomorrow",
   "chat.deleteForMe": "Delete for me",
   "chat.deleteForAll": "Delete for everyone",
   "chat.thisDeleted": "This message was deleted.",

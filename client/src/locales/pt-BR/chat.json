@@ -26,6 +26,7 @@
   "chat.awayHint": "ausente · {msg} · digite /back para voltar",
   "chat.changesLeft": "{n} alteração{s} restante{s}",
   "chat.changesOf3": "{n} de {max} alterações de apelido restantes hoje.",
+  "chat.changesExhausted": "Cota diária esgotada · Renova amanhã",
   "chat.deleteForMe": "Excluir para mim",
   "chat.deleteForAll": "Excluir para todos",
   "chat.thisDeleted": "Esta mensagem foi excluída.",

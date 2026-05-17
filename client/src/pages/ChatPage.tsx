@@ -1612,7 +1612,7 @@ const ChatPage = () => {
           <div style={{ marginTop: 'auto', borderTop: '1px solid var(--ch-border)', padding: '8px 12px' }}>
             <button
               onClick={openNicknameModal}
-              title={nicknameChangesLeft > 0 ? t('chat.changesLeft', { n: nicknameChangesLeft, s: nicknameChangesLeft !== 1 ? 's' : '' }) : t('chat.changesOf3', { n: 0, max: monetization.nickChangesMaxToday, s: 's' })}
+              title={nicknameChangesLeft > 0 ? t('chat.changesLeft', { n: nicknameChangesLeft, s: nicknameChangesLeft !== 1 ? 's' : '' }) : t('chat.changesExhausted')}
               style={{ width: '100%', background: 'none', border: 'none', cursor: nicknameChangesLeft > 0 ? 'pointer' : 'default', padding: 0, textAlign: 'left' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -1836,7 +1836,9 @@ const ChatPage = () => {
                 <p style={{ fontSize: 11, color: 'var(--ch-error)', marginTop: 5 }}>{nicknameError}</p>
               )}
               <p style={{ fontSize: 10, color: monetization.nickChangesLeftToday === 0 ? 'var(--ch-error)' : 'var(--ch-text-3)', marginTop: 5 }}>
-                {t('chat.changesOf3', { n: monetization.nickChangesLeftToday, max: monetization.nickChangesMaxToday, s: monetization.nickChangesLeftToday !== 1 ? 's' : '' })}
+                {monetization.nickChangesLeftToday === 0
+                  ? t('chat.changesExhausted')
+                  : t('chat.changesOf3', { n: monetization.nickChangesLeftToday, max: monetization.nickChangesMaxToday, s: monetization.nickChangesLeftToday !== 1 ? 's' : '' })}
               </p>
             </div>
 
