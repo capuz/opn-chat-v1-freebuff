@@ -5,6 +5,7 @@
   "cmd.nick.tooShort": "El nick debe tener al menos 3 caracteres.",
   "cmd.nick.tooLong": "El nick no puede tener más de 30 caracteres.",
   "cmd.nick.changed": "Nick cambiado a {nick}. {n} cambio{s} restante{s}.",
+  "cmd.nick.taken": "Ese nickname ya está en uso.",
   "cmd.nick.error": "Error al cambiar el Nick.",
   "cmd.join.notFound": "El espacio #{name} no existe.",
   "cmd.join.joined": "Te uniste a #{name}.",

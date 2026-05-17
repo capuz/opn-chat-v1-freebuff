@@ -5,6 +5,7 @@
   "cmd.nick.tooShort": "Nickname must be at least 3 characters.",
   "cmd.nick.tooLong": "Nickname must be at most 30 characters.",
   "cmd.nick.changed": "Nickname changed to {nick}. {n} change{s} remaining.",
+  "cmd.nick.taken": "That nickname is already taken.",
   "cmd.nick.error": "Failed to change nickname.",
   "cmd.join.notFound": "Room #{name} not found.",
   "cmd.join.joined": "Joined #{name}.",

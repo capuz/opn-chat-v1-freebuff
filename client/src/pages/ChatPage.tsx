@@ -590,7 +590,11 @@ const ChatPage = () => {
       injectLocal(t('cmd.nick.changed', { nick: trimmed, n: left, s: left !== 1 ? 's' : '' }));
     } catch (err: any) {
       chatSounds.play('error');
-      injectLocal(err?.response?.data?.error ?? t('cmd.nick.error'));
+      const detail = err?.response?.data?.detail;
+      const msg = detail === 'Nickname taken' ? t('cmd.nick.taken')
+                : detail === 'DAILY_LIMIT'    ? t('cmd.nick.noChanges')
+                : t('cmd.nick.error');
+      injectLocal(msg);
     }
   };
 
@@ -843,7 +847,12 @@ const ChatPage = () => {
       refreshAuth();
       setShowNicknameModal(false);
     } catch (err: any) {
-      setNicknameError(err?.response?.data?.error ?? t('cmd.nick.error'));
+      const detail = err?.response?.data?.detail;
+      setNicknameError(
+        detail === 'Nickname taken' ? t('cmd.nick.taken')
+        : detail === 'DAILY_LIMIT' ? t('cmd.nick.noChanges')
+        : t('cmd.nick.error')
+      );
     } finally {
       setNicknameSaving(false);
     }

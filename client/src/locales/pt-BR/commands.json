@@ -5,6 +5,7 @@
   "cmd.nick.tooShort": "O apelido deve ter pelo menos 3 caracteres.",
   "cmd.nick.tooLong": "O apelido não pode ter mais de 30 caracteres.",
   "cmd.nick.changed": "Apelido alterado para {nick}. {n} alteração{s} restante{s}.",
+  "cmd.nick.taken": "Esse apelido já está em uso.",
   "cmd.nick.error": "Falha ao alterar o apelido.",
   "cmd.join.notFound": "Sala #{name} não encontrada.",
   "cmd.join.joined": "Você entrou em #{name}.",
