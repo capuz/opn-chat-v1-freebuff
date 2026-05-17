@@ -8,9 +8,10 @@ interface RewardModalProps {
   onClose: () => void;
   isWatchingAd: boolean;
   adFailed?: boolean;
+  adCountdown?: number;
 }
 
-export function RewardModal({ type, isDark: _isDark, onWatchAd, onUpgrade, onClose, isWatchingAd, adFailed }: RewardModalProps) {
+export function RewardModal({ type, isDark: _isDark, onWatchAd, onUpgrade, onClose, isWatchingAd, adFailed, adCountdown = 0 }: RewardModalProps) {
   const { t } = useTranslation();
 
   const subtitle =
@@ -64,13 +65,23 @@ export function RewardModal({ type, isDark: _isDark, onWatchAd, onUpgrade, onClo
             {isWatchingAd ? t('monetize.watchingAd') : `📺 ${t('monetize.watchAd')}`}
           </button>
 
-          {/* Loading state while AdSense overlay opens */}
+          {/* Countdown while ad is active */}
           {isWatchingAd && (
             <div style={{
               padding: '10px 0', textAlign: 'center',
               fontSize: 12, color: 'var(--ch-text-2)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
             }}>
-              ⏳ {t('monetize.watchingAd')}
+              {adCountdown > 0 ? (
+                <>
+                  <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--ch-text)', lineHeight: 1 }}>
+                    {adCountdown}
+                  </span>
+                  <span>⏳ {t('monetize.watchingAd')}</span>
+                </>
+              ) : (
+                <span>⏳ {t('monetize.watchingAd')}</span>
+              )}
             </div>
           )}
 

@@ -236,6 +236,7 @@ const ChatPage = () => {
   const [showRewardModal,   setShowRewardModal]   = useState<'room' | 'nickname' | 'boost' | null>(null);
   const [isWatchingAd,      setIsWatchingAd]      = useState(false);
   const [adGrantFailed,     setAdGrantFailed]     = useState(false);
+  const [adCountdown,       setAdCountdown]       = useState(0);
   const [pendingBoostRoomId, setPendingBoostRoomId] = useState<string | null>(null);
   const [hoveredRoom,       setHoveredRoom]       = useState<string | null>(null);
   const [activeBoost,       setActiveBoost]       = useState<{ roomId: string; expiresAt: number } | null>(null);
@@ -283,6 +284,18 @@ const ChatPage = () => {
   useEffect(() => { presenceReadyRef.current = presenceReady; }, [presenceReady]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
   useEffect(() => { privatePartnerRef.current = privatePartner; }, [privatePartner]);
+
+  useEffect(() => {
+    if (!isWatchingAd) { setAdCountdown(0); return; }
+    setAdCountdown(15);
+    const id = setInterval(() => {
+      setAdCountdown(prev => {
+        if (prev <= 1) { clearInterval(id); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isWatchingAd]);
 
   // ── Auth guard — read from localStorage to avoid context lag after login ──
   useEffect(() => {
@@ -1785,6 +1798,7 @@ const ChatPage = () => {
           onClose={() => { setShowRewardModal(null); setAdGrantFailed(false); }}
           isWatchingAd={isWatchingAd}
           adFailed={adGrantFailed}
+          adCountdown={adCountdown}
         />
       )}
 
