@@ -797,10 +797,6 @@ const ChatPage = () => {
   };
 
   const openNicknameModal = () => {
-    if (nicknameChangesLeft === 0) {
-      setShowNickAdModal(true);
-      return;
-    }
     setNewNickname(user?.nickname ?? '');
     setNicknameError('');
     setShowNicknameModal(true);
@@ -1637,7 +1633,11 @@ const ChatPage = () => {
           onSuccess={(expiryTs) => {
             onAdWatched(expiryTs);
             setShowNickAdModal(false);
-            openNicknameModal();
+            api.get('/api/profile/me').then(res => {
+              setNicknameChangesLeft(res.data.nicknameChangesLeft ?? 0);
+            }).catch(() => {
+              setNicknameChangesLeft(prev => prev + 1);
+            });
           }}
         />
       )}
@@ -1674,25 +1674,22 @@ const ChatPage = () => {
                   style={{ ...modalInput, flex: 1 }}
                 />
                 <button
-                  onClick={() => {
-                    if (nicknameChangesLeft === 0) {
-                      setShowNicknameModal(false);
-                      setShowNickAdModal(true);
-                    } else {
-                      saveNickname();
-                    }
-                  }}
-                  disabled={nicknameSaving || !newNickname.trim()}
+                  onClick={nicknameChangesLeft === 0
+                    ? () => setShowNickAdModal(true)
+                    : saveNickname}
+                  disabled={nicknameChangesLeft > 0 && (nicknameSaving || !newNickname.trim())}
                   style={{
                     padding: '0 14px', fontSize: 12, fontWeight: 600,
                     borderRadius: 6, border: 'none', flexShrink: 0,
-                    cursor: nicknameSaving || !newNickname.trim() ? 'not-allowed' : 'pointer',
-                    background: nicknameSaving || !newNickname.trim() ? 'var(--ch-border)' : 'var(--ch-btn-active)',
-                    color: nicknameSaving || !newNickname.trim() ? 'var(--ch-text-3)' : 'var(--ch-btn-text)',
+                    cursor: (nicknameChangesLeft > 0 && (nicknameSaving || !newNickname.trim())) ? 'not-allowed' : 'pointer',
+                    background: (nicknameChangesLeft > 0 && (nicknameSaving || !newNickname.trim())) ? 'var(--ch-border)' : 'var(--ch-btn-active)',
+                    color: (nicknameChangesLeft > 0 && (nicknameSaving || !newNickname.trim())) ? 'var(--ch-text-3)' : 'var(--ch-btn-text)',
                     fontFamily: 'inherit', whiteSpace: 'nowrap',
                   }}
                 >
-                  {nicknameSaving ? '...' : t('common.save')}
+                  {nicknameChangesLeft === 0
+                    ? `📺 ${t('monetize.watchAd')}`
+                    : nicknameSaving ? '...' : t('common.save')}
                 </button>
               </div>
               {nicknameError && (
