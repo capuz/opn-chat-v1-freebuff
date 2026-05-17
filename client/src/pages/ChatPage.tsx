@@ -1838,7 +1838,7 @@ const ChatPage = () => {
               <p style={{ fontSize: 10, color: monetization.nickChangesLeftToday === 0 ? 'var(--ch-error)' : 'var(--ch-text-3)', marginTop: 5 }}>
                 {monetization.nickChangesLeftToday === 0
                   ? t('chat.changesExhausted')
-                  : t('chat.changesOf3', { n: monetization.nickChangesLeftToday, max: monetization.nickChangesMaxToday, s: monetization.nickChangesLeftToday !== 1 ? 's' : '' })}
+                  : t('chat.changesLeft', { n: monetization.nickChangesLeftToday, s: monetization.nickChangesLeftToday !== 1 ? 's' : '' })}
               </p>
             </div>
 

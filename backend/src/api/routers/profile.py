@@ -47,7 +47,7 @@ async def get_me(payload: Annotated[dict, Depends(get_current_user_payload)]):
     }
 
 
-@router.put("/nickname", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/nickname")
 async def change_nickname(
     body: NicknameBody,
     payload: Annotated[dict, Depends(get_current_user_payload)],
@@ -76,6 +76,8 @@ async def change_nickname(
         user.nickname_changes_today = used_today + 1
         user.nickname_changes_date = today
         await repo.update(user)
+
+    return {"changesLeft": limit - (used_today + 1)}
 
 
 @router.post("/nick-ad-unlock", status_code=status.HTTP_204_NO_CONTENT)
