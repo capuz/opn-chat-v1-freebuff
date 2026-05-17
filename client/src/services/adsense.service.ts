@@ -1,5 +1,5 @@
-const AD_CLIENT = 'ca-pub-7626774247344411'; // reemplazar con tu Publisher ID
-const AD_SLOT   = '8267497706';        // reemplazar con el Slot ID del ad unit "Recompensado"
+// TODO: replace with your Google Ad Manager ad unit path (e.g. '/12345678/rewarded_unit')
+const GPT_AD_UNIT = '/22639388115/rewarded_web_example';
 
 let _adInFlight = false;
 
@@ -8,39 +8,69 @@ export function showRewardedAd(): Promise<boolean> {
 
   return new Promise((resolve) => {
     _adInFlight = true;
-    const win = window as Window & { adsbygoogle: AdsBygoogle };
-    const adsbygoogle = win.adsbygoogle;
+    const { googletag } = window;
 
-    if (!adsbygoogle || typeof adsbygoogle.push !== 'function') {
+    if (!googletag?.cmd) {
       _adInFlight = false;
       resolve(false);
       return;
     }
 
     let resolved = false;
+    let rewardGranted = false;
+
     const done = (granted: boolean) => {
-      if (!resolved) { resolved = true; _adInFlight = false; resolve(granted); }
+      if (!resolved) {
+        resolved = true;
+        _adInFlight = false;
+        resolve(granted);
+      }
     };
 
-    try {
-      adsbygoogle.push({
-        params: {
-          google_ad_client: AD_CLIENT,
-          google_ad_slot:   AD_SLOT,
-        },
-        callback(result: EventTarget) {
-          result.addEventListener('rewardedSlotReady', (e: Event) => {
-            (e as RewardedSlotReadyEvent).makeRewardedVisible();
-          });
-          result.addEventListener('rewardedSlotGranted', () => done(true));
-          result.addEventListener('rewardedSlotClosed',  () => done(false));
-          result.addEventListener('rewardedSlotFailed',  () => done(false));
-        },
-      });
-    } catch {
-      done(false);
-    }
+    googletag.cmd.push(() => {
+      const slot = googletag.defineOutOfPageSlot(
+        GPT_AD_UNIT,
+        googletag.enums.OutOfPageFormat.REWARDED,
+      );
 
-    setTimeout(() => done(false), 30_000);
+      if (!slot) {
+        done(false);
+        return;
+      }
+
+      slot.addService(googletag.pubads());
+
+      const onReady = (event: googletag.events.RewardedSlotReadyEvent) => {
+        event.makeRewardedVisible();
+      };
+      const onGranted = () => {
+        rewardGranted = true;
+      };
+      const onClosed = () => {
+        cleanup(rewardGranted);
+      };
+      const onRenderEnded = (event: googletag.events.SlotRenderEndedEvent) => {
+        if (event.slot === slot && event.isEmpty) cleanup(false);
+      };
+
+      const cleanup = (granted: boolean) => {
+        googletag.pubads().removeEventListener('rewardedSlotReady', onReady as (e: unknown) => void);
+        googletag.pubads().removeEventListener('rewardedSlotGranted', onGranted as (e: unknown) => void);
+        googletag.pubads().removeEventListener('rewardedSlotClosed', onClosed as (e: unknown) => void);
+        googletag.pubads().removeEventListener('slotRenderEnded', onRenderEnded as (e: unknown) => void);
+        googletag.destroySlots([slot]);
+        done(granted);
+      };
+
+      googletag.pubads().addEventListener('rewardedSlotReady', onReady);
+      googletag.pubads().addEventListener('rewardedSlotGranted', onGranted);
+      googletag.pubads().addEventListener('rewardedSlotClosed', onClosed);
+      googletag.pubads().addEventListener('slotRenderEnded', onRenderEnded);
+
+      googletag.enableServices();
+      googletag.display(slot);
+    });
+
+    setTimeout(() => done(false), 60_000);
   });
 }
