@@ -39,11 +39,16 @@ async def get_me(payload: Annotated[dict, Depends(get_current_user_payload)]):
         user = await UserRepository(db).get_by_id(UUID(payload["sub"]))
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    today = datetime.now(UTC).date()
+    used_today = user.nickname_changes_today if user.nickname_changes_date == today else 0
+    nick_limit = 2 if (user.nick_ad_unlocked_until and user.nick_ad_unlocked_until > datetime.now(UTC)) else 1
     return {
         "id": str(user.id), "email": user.email, "nickname": user.nickname,
         "avatar_url": user.avatar_url, "bio": user.bio, "global_badge": user.global_badge,
         "is_admin": user.is_admin, "country_code": user.country_code,
         "show_flag": user.show_flag, "preferred_language": user.preferred_language,
+        "nicknameChangesLeft": max(0, nick_limit - used_today),
+        "nicknameChangesMax": nick_limit,
     }
 
 

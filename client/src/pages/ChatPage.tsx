@@ -225,7 +225,7 @@ const ChatPage = () => {
 
   const [showNicknameModal,   setShowNicknameModal]   = useState(false);
   const [newNickname,         setNewNickname]         = useState('');
-  const [nicknameChangesLeft, setNicknameChangesLeft] = useState<number>(3);
+  const [nicknameChangesLeft, setNicknameChangesLeft] = useState<number>(1);
   const [nicknameError,       setNicknameError]       = useState('');
   const [nicknameSaving,      setNicknameSaving]      = useState(false);
 
@@ -347,7 +347,7 @@ const ChatPage = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
     api.get('/api/profile/me').then(res => {
-      setNicknameChangesLeft(res.data.nicknameChangesLeft ?? 3);
+      setNicknameChangesLeft(res.data.nicknameChangesLeft ?? 1);
       setShowFlag(res.data.show_flag ?? false);
       setCountryCode(res.data.country_code ?? '');
     }).catch(() => {});
@@ -834,6 +834,10 @@ const ChatPage = () => {
   };
 
   const openNicknameModal = () => {
+    if (nicknameChangesLeft === 0) {
+      setShowRewardModal('nickname');
+      return;
+    }
     setNewNickname(user?.nickname ?? '');
     setNicknameError('');
     setShowNicknameModal(true);
@@ -1835,7 +1839,7 @@ const ChatPage = () => {
                 />
                 <button
                   onClick={() => {
-                    if (monetization.nickChangesLeftToday === 0) {
+                    if (nicknameChangesLeft === 0) {
                       setShowNicknameModal(false);
                       setShowRewardModal('nickname');
                     } else {
